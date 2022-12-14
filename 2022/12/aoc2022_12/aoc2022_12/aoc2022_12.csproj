@@ -11,4 +11,10 @@
     <PackageReference Include="Spectre.Console" Version="0.45.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="input.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
