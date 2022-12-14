@@ -1,35 +1,52 @@
-﻿var input = File.ReadAllLines(@"C:\Users\psoszyns\programming\2022\12\input.txt");
+﻿using Spectre.Console;
+AnsiConsole.ResetColors();
 
+Thread.Sleep(2);
+var input = File.ReadAllLines(@"C:\Users\psoszyns\programming\2022\12\input.txt");
 var length = input[0].Length; //8
+#pragma warning disable CA1416 // Validate platform compatibility
+Console.BufferWidth = Console.LargestWindowWidth;
+Console.BufferHeight = Console.LargestWindowHeight;
+#pragma warning restore CA1416 // Validate platform compatibility
+
+var y = 0;
+foreach (var line in input)
+{
+    var x = 0;
+    foreach (var c in line)
+    {
+        int c1 = Convert.ToInt32(22 * ((float)c - 97) / 25) + 232;
+        Console.CursorLeft = x;
+        Console.CursorTop = y;
+        AnsiConsole.Background = Spectre.Console.Color.FromInt32(c1);
+        AnsiConsole.Write(c);
+        x++;
+    }
+    y++;
+}
+
 (var start, var stop, var rows) = FindStartStop(input);
 
 var points = new HashSet<(int, int)>();
 var newPoints = new HashSet<(int, int)>();
 var visitedPoints = new HashSet<(int, int)>();
 
-
 points.Add((start));
 var i = 1;
 while (true)
 {
-    newPoints = NextIteration(points);
-    if (newPoints.Count() == 0) break;
+    (var foundDestination, newPoints) = NextIteration(points);
+    PrintPoints(newPoints, Spectre.Console.Color.Red);
+    Thread.Sleep(20);
+    PrintPoints(points);
+    if (foundDestination || newPoints.Count() == 0) break;
     points = newPoints;
     i++;
-    PrintPoints(points);
-}
-Console.WriteLine(i);
-
-void PrintPoints(HashSet<(int, int)> points)
-{
-    foreach (var p in points)
-    {
-        Console.Write($"({p.Item1},{p.Item2},{input[p.Item2][p.Item1]}) ");
-    }
-    Console.WriteLine();
 }
 
-HashSet<(int, int)> NextIteration(HashSet<(int, int)> points)
+Console.CursorTop = input.Count()-1;
+
+(bool, HashSet<(int, int)>) NextIteration(HashSet<(int, int)> points)
 {
     var newPoints = new HashSet<(int, int)>();
     foreach (var p in points)
@@ -37,7 +54,10 @@ HashSet<(int, int)> NextIteration(HashSet<(int, int)> points)
         int xnew, ynew, heightOfNew;
         var heightOfCurrent = input[p.Item2][p.Item1];
         if (heightOfCurrent == 'S') heightOfCurrent = 'a';
-        if (heightOfCurrent == 'E') heightOfCurrent = 'z';
+        if (heightOfCurrent == 'E') //heightOfCurrent = 'z';
+        {
+            return (true, newPoints);
+        }
 
         xnew = p.Item1 + 1;
         if (xnew < length)
@@ -90,7 +110,7 @@ HashSet<(int, int)> NextIteration(HashSet<(int, int)> points)
             }
         }
     }
-    return newPoints;
+    return (false, newPoints);
 }
 
 ((int, int), (int, int), int) FindStartStop(string[] input)
@@ -104,15 +124,39 @@ HashSet<(int, int)> NextIteration(HashSet<(int, int)> points)
         var sElement = lChar.Select((x, i) => (x, i)).Where(i => i.Item1 == 'S');
         if (sElement.Count() > 0)
         {
-            start = (row, sElement.First().Item2);
+            start = (sElement.First().Item2, row);
         }
         var eElement = lChar.Select((x, i) => (x, i)).Where(i => i.Item1 == 'E');
         if (eElement.Count() > 0)
         {
-            end = (row, eElement.First().Item2);
+            end = (eElement.First().Item2, row);
         }
         row++;
     }
     return (start, end, row);
 }
 
+void PrintPoints(HashSet<(int,int)> points, Spectre.Console.Color? color = null)
+{
+    if (color.HasValue)
+    {
+        foreach (var p in points)
+        {
+            Console.CursorLeft = p.Item1;
+            Console.CursorTop = p.Item2;
+            AnsiConsole.Background = color.Value;
+            AnsiConsole.Write(input[p.Item2][p.Item1]);
+        }
+    }
+    else
+    {
+        foreach (var p in points)
+        {
+            Console.CursorLeft = p.Item1;
+            Console.CursorTop = p.Item2;
+            var c = input[p.Item2][p.Item1];
+            AnsiConsole.Background = Convert.ToInt32(22 * ((float)c - 97) / 25) + 232;
+            AnsiConsole.Write(input[p.Item2][p.Item1]);
+        }
+    }
+}
