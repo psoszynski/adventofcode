@@ -4,39 +4,48 @@ using System.Diagnostics;
 var input = File.ReadAllLines("real_input.txt");
 var seedsPart1 = input[0].Substring(7).Split(" ").Select(long.Parse).ToList();
 
-var seedsPart2 = new List<long>();
-for (var i=0; i<seedsPart1.Count; i+=2)
-{
-    Console.WriteLine(seedsPart1[i + 1]);
-    for (var j=0; j < seedsPart1[i+1]; j++)
-    {
-        var seed = seedsPart1[i] + j;
-        seedsPart2.Add(seed);
-    }
-}
-
-var max = seedsPart2.Max();
-Console.WriteLine($"max={max}");
-
 var almanac = ReadAlmanac(input);
 
-Console.WriteLine("creating matrix...");
 var s = new Stopwatch();
 s.Start();
-var matrix = CreateMatrix(almanac, max);
-s.Stop();
-Console.WriteLine($"Matrix created in {s.ElapsedMilliseconds}ms");
 
-//matrix approach
-var lowestLocation = long.MaxValue;
-foreach(var value in seedsPart2)
+long location = -1;
+while (true)
 {
-    var current = matrix[value];
-    if (current < lowestLocation)
+    var current = ++location;
+    foreach (var m in almanac.Reverse())
     {
-        lowestLocation = current;
+        current = ReverseMap(m.Key, current);
+    }
+
+    if (IsSeedPart2(seedsPart1, current))
+    {
+        break;
     }
 }
+
+s.Stop();
+Console.WriteLine($"Lowest location: {location} time: {s.Elapsed.Seconds}");
+
+
+#region old
+// Console.WriteLine("creating matrix...");
+// var s = new Stopwatch();
+// s.Start();
+// var matrix = CreateMatrix(almanac, max);
+// s.Stop();
+// Console.WriteLine($"Matrix created in {s.ElapsedMilliseconds}ms");
+
+//matrix approach
+// var lowestLocation = long.MaxValue;
+// foreach(var value in seedsPart2)
+// {
+//     var current = matrix[value];
+//     if (current < lowestLocation)
+//     {
+//         lowestLocation = current;
+//     }
+// }
 
 //mapping for each value approach
 //foreach(var value in seedsPart2)
@@ -52,21 +61,53 @@ foreach(var value in seedsPart2)
 //    }
 //}
 
-Console.WriteLine(lowestLocation);
+//Console.WriteLine(lowestLocation);
+#endregion
 
-long Map(string mapping, long input)
+long Map(string mapping, long source)
 {
     var records = almanac[mapping];
-
     foreach(var record in records)
     {
-        if(input >= record.Item2 && input < record.Item2 + record.Item3)
+        // rocord: 49 53 4 -> source 53,54,55,56 is mapped to destination 49,50,51,52
+        // if source is in the source range
+        // source >= 53 AND source < 57 (53+4)
+        if(source >= record.Item2 && source < record.Item2 + record.Item3)
         {
-            var ret = record.Item1 + input - record.Item2;
-            return ret;
+            var destination = record.Item1 + source - record.Item2;
+            return destination;
         }
     }
-    return input;
+    return source;
+}
+
+long ReverseMap(string mapping, long destination)
+{
+    var records = almanac[mapping];
+    foreach(var record in records)
+    {
+        // rocord: 49 53 4 -> source 53,54,55,56 is mapped to destination 49,50,51,52
+        // if destiantion is in the destination range
+        // destination >= 49 AND destination < 53 (49+4)
+        if(destination >= record.Item1 && destination < record.Item1 + record.Item3)
+        {
+            var source = record.Item2 + destination - record.Item1;
+            return source;
+        }
+    }
+    return destination;
+}
+
+bool IsSeedPart2(List<long> seedsPart1, long value)
+{
+    for (var i=0; i<seedsPart1.Count; i+=2)
+    {
+        if (value >= seedsPart1[i] && value < seedsPart1[i] + seedsPart1[i + 1])
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 Dictionary<string, List<(long,long,long)>> ReadAlmanac(string[] input)
