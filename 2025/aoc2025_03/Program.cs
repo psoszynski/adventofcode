@@ -1,6 +1,7 @@
-﻿var input = await File.ReadAllLinesAsync("input1.txt");
+﻿
+var input = await File.ReadAllLinesAsync("input1.txt");
 
-var sumOfJoltages = 0;
+Int64 sumOfJoltages = 0;
 foreach (var line in input)
 {
     var inputSpan = line.AsSpan();
@@ -10,12 +11,51 @@ foreach (var line in input)
 }
 Console.WriteLine($"Sum of joltages: {sumOfJoltages}");
 
-int GetLargestJoltagePart2(ReadOnlySpan<char> inputSpan)
+Int64 GetLargestJoltagePart2(ReadOnlySpan<char> inputSpan)
 {
-    // Want to go through all permutations of the digits in the inputSpan
-    // but having exactly 12 digits, form a number from that permutation
-    // then find the largest number of all the permutations
-    return 0;
+    const int targetLength = 12;
+    if (inputSpan.Length < targetLength)
+        throw new ArgumentException($"Input must contain at least {targetLength} digits.", nameof(inputSpan));
+
+    // Number of digits we must remove
+    int toRemove = inputSpan.Length - targetLength;
+
+    // Greedy stack approach: build the maximal subsequence of length targetLength preserving order.
+    // Use a heap-backed buffer to avoid returning a stack pointer.
+    var buffer = new char[inputSpan.Length];
+    int top = 0;
+
+    for (int i = 0; i < inputSpan.Length; i++)
+    {
+        char c = inputSpan[i];
+        if (!char.IsDigit(c))
+            throw new FormatException($"Non-digit character encountered at position {i}: '{c}'.");
+
+        while (top > 0 && toRemove > 0 && buffer[top - 1] < c)
+        {
+            top--;
+            toRemove--;
+        }
+
+        buffer[top++] = c;
+    }
+
+    // If we still need to remove more (monotonic non-increasing), trim from the end
+    top -= toRemove;
+    if (top < targetLength) top = targetLength; // defensive; shouldn't normally happen
+
+    // Take the first targetLength characters to form the maximal number
+    var resultChars = new char[targetLength];
+    Array.Copy(buffer, 0, resultChars, 0, targetLength);
+    var resultString = new string(resultChars);
+
+    if (!long.TryParse(resultString, out var parsed))
+        throw new FormatException("Failed to parse selected digits into a number.");
+
+    if (parsed > Int64.MaxValue)
+        throw new OverflowException($"Result {parsed} exceeds {nameof(Int32)}. Change return type to long if needed.");
+
+    return (Int64)parsed;
 }
 
 int GetLargestJoltage(ReadOnlySpan<char> inputSpan)
@@ -49,7 +89,7 @@ int GetLargestJoltage(ReadOnlySpan<char> inputSpan)
         }
 
         // if any of the secondlargest indexes is higher than the index of the largest than we return a value largest value * 10 + second largest value
-        var thereAreSecondLargestToTheRightOfTheLargest = secondLargestIndexes.Any(i  => i > indexOfLargest);
+        var thereAreSecondLargestToTheRightOfTheLargest = secondLargestIndexes.Any(i => i > indexOfLargest);
         if (thereAreSecondLargestToTheRightOfTheLargest)
         {
             var largestValue = inputSpan[indexOfLargest] - '0';
@@ -98,4 +138,29 @@ static ReadOnlySpan<char> CloneWithZeros(ReadOnlySpan<char> src, int[] zeroIndic
         if ((uint)idx < (uint)buffer.Length) buffer[idx] = '0';
     }
     return new ReadOnlySpan<char>(buffer);
+}
+
+
+string RemoveKdigits(string num, int k)
+{
+    var originalK = k;
+    var buffer = new char[num.Length];
+    int top = 0;
+    for (int i = 0; i < num.Length; i++)
+    {
+        char c = num[i];
+        while (top > 0 && k > 0 && buffer[top - 1] > c)
+        {
+            top--;
+            k--;
+        }
+        buffer[top++] = c;
+    }
+    var targetLength = num.Length - originalK;
+    var resultChars = new char[targetLength];
+    Array.Copy(buffer, 0, resultChars, 0, targetLength);
+    var resultString = new string(resultChars);
+    resultString = resultString.TrimStart('0');
+    if (resultString == "") resultString = "0";
+    return resultString;
 }
