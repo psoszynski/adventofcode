@@ -1,4 +1,6 @@
-﻿var lines = File.ReadAllLines("input.txt");
+﻿using Spectre.Console;
+
+var lines = File.ReadAllLines("input1.txt");
 
 var maxY = lines.Length;
 var maxX = lines[0].Length;
@@ -8,9 +10,44 @@ for (int y = 0; y < maxY; y++)
     for (int x = 0; x < maxX; x++)
         grid[y, x] = lines[y][x] == '@';
 
-(int accessibleCount, char[,] resultGrid) = FindAccessibleToiletpapers(maxY, maxX, grid);
+int totalAccessibleCount = 0;
 
-Console.WriteLine(accessibleCount);
+AnsiConsole.Live(new Canvas(maxX, maxY))
+    .Start(ctx =>
+    {
+        while (true)
+        {
+            (int accessibleCount, char[,] resultGrid) = FindAccessibleToiletpapers(maxY, maxX, grid);
+
+            var canvas = new Canvas(maxX, maxY);
+            for (int y = 0; y < maxY; y++)
+            {
+                for (int x = 0; x < maxX; x++)
+                {
+                    if (grid[y, x])
+                    {
+                        if (resultGrid[y, x] == 'x')
+                            canvas.SetPixel(x, y, Color.Red);
+                        else
+                            canvas.SetPixel(x, y, Color.Green);
+                    }
+                    else
+                    {
+                        canvas.SetPixel(x, y, Color.Grey);
+                    }
+                }
+            }
+            ctx.UpdateTarget(canvas);
+            Thread.Sleep(50);
+
+            if (accessibleCount == 0) break;
+
+            totalAccessibleCount += accessibleCount;
+            RemoveToiletPapers(grid, resultGrid);
+        }
+    });
+
+Console.WriteLine(totalAccessibleCount);
 
 //for (int y = 0; y < maxY; y++)
 //{
@@ -41,7 +78,7 @@ int Check(int y, int x)
     return count;
 }
 
-(int,char[,]) FindAccessibleToiletpapers(int maxY, int maxX, bool[,] grid)
+(int, char[,]) FindAccessibleToiletpapers(int maxY, int maxX, bool[,] grid)
 {
     var total = 0;
     var grid2 = new char[maxY, maxX];
@@ -67,5 +104,15 @@ int Check(int y, int x)
                 grid2[y, x] = '.';
             }
         }
-    return (total,grid2);
+    return (total, grid2);
+}
+
+void RemoveToiletPapers(bool[,] grid, char[,] resultGrid)
+{
+    int maxY = grid.GetLength(0);
+    int maxX = grid.GetLength(1);
+    for (int y = 0; y < maxY; y++)
+        for (int x = 0; x < maxX; x++)
+            if (resultGrid[y, x] == 'x')
+                grid[y, x] = false;
 }
